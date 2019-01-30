@@ -14,6 +14,7 @@ public enum CorkboardError: Error {
     case urlEncoding(URLComponents)
     case network(URLResponse?)
     case json(Error)
+    case pinboardError(PinboardError)
 }
 
 public struct PinboardClient {
@@ -102,6 +103,10 @@ public struct PinboardClient {
             decoder.dateDecodingStrategy = .iso8601
             decoder.keyDecodingStrategy = .convertFromSnakeCase
 
+            if let pinboardError = try? decoder.decode(PinboardError.self, from: data) {
+                completion(.failure(.pinboardError(pinboardError)))
+                return
+            }
 
             do {
                 let value = try decoder.decode(T.self, from: data)
