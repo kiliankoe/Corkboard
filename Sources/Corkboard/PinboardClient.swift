@@ -1,10 +1,5 @@
 import Foundation
 
-enum Endpoint: String {
-    case postsUpdate = "/posts/update"
-    case postsRecent = "/posts/recent"
-}
-
 public enum Authentication {
     case credentials(username: String, password: String)
     case token(String)

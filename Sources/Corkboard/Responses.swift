@@ -4,6 +4,8 @@ struct PinboardResult: Decodable {
     let resultCode: String
 }
 
+struct Ok: Decodable {}
+
 struct BookmarksResponse: Decodable {
     let date: Date
     let user: String

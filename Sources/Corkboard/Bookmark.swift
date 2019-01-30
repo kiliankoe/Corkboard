@@ -12,6 +12,8 @@ public struct Bookmark: Decodable {
     public let url: URL
     public let title: String
     public let description: String
+    public let meta: String?
+    public let hash: String?
     public let time: Date
     public let isPublic: Bool
     public let isUnread: Bool
@@ -21,6 +23,8 @@ public struct Bookmark: Decodable {
         case url = "href"
         case title = "description"
         case description = "extended"
+        case meta
+        case hash
         case time
         case isPublic = "shared"
         case isUnread = "toread"
@@ -32,6 +36,8 @@ public struct Bookmark: Decodable {
         self.url = try container.decode(URL.self, forKey: .url)
         self.title = try container.decode(String.self, forKey: .title)
         self.description = try container.decode(String.self, forKey: .description)
+        self.meta = try container.decodeIfPresent(String.self, forKey: .meta)
+        self.hash = try container.decodeIfPresent(String.self, forKey: .hash)
         self.time = try container.decode(Date.self, forKey: .time)
 
         let shared = try container.decode(YesNo.self, forKey: .isPublic)
