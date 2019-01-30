@@ -16,56 +16,6 @@ public enum CorkboardError: Error {
     case json(Error)
 }
 
-enum Network {
-    static func request<T: Decodable>(_ queryItems: [URLQueryItem],
-                 _ auth: Authentication,
-                 from endpoint: Endpoint,
-                 session: URLSession,
-                 completion: @escaping (Result<T, CorkboardError>) -> Void) {
-
-        var components = URLComponents()
-        components.scheme = "https"
-        components.host = "api.pinboard.in"
-        components.path = "/v1\(endpoint.rawValue)"
-        components.queryItems = queryItems
-        components.queryItems?.append(URLQueryItem(name: "format", value: "json"))
-
-        switch auth {
-        case .credentials(username: let username, password: let password):
-            components.user = username
-            components.password = password
-        case .token(let token):
-            components.queryItems?.append(URLQueryItem(name: "auth_token", value: token))
-        }
-
-        guard let url = components.url else {
-            completion(.failure(.urlEncoding(components)))
-            return
-        }
-
-        let task = session.dataTask(with: url) { data, response, error in
-            guard error == nil, let data = data else {
-                completion(.failure(.network(response)))
-                return
-            }
-
-            let decoder = JSONDecoder()
-            decoder.dateDecodingStrategy = .iso8601
-            decoder.keyDecodingStrategy = .convertFromSnakeCase
-
-            do {
-                let value = try decoder.decode(T.self, from: data)
-                completion(.success(value))
-            } catch {
-                completion(.failure(.json(error)))
-            }
-
-        }
-
-        task.resume()
-    }
-}
-
 public struct PinboardClient {
     var auth: Authentication
 
@@ -74,7 +24,7 @@ public struct PinboardClient {
     /// Use this before calling posts/all to see if the data has changed since the last fetch.
     public func postsUpdate(session: URLSession = .shared,
                             completion: @escaping (Result<Date, CorkboardError>) -> Void) {
-        Network.request([], self.auth, from: .postsUpdate, session: session) {
+        request([], self.auth, from: .postsUpdate, session: session) {
             (result: Result<PostsUpdateResponse, CorkboardError>) in
 
             switch result {
@@ -105,7 +55,7 @@ public struct PinboardClient {
                 URLQueryItem(name: "tags", value: tags.joined(separator: " ")))
         }
 
-        Network.request(queryItems, self.auth, from: Endpoint.postsRecent, session: session) {
+        request(queryItems, self.auth, from: Endpoint.postsRecent, session: session) {
             (result: Result<BookmarksResponse, CorkboardError>) in
 
             switch result {
@@ -115,5 +65,53 @@ public struct PinboardClient {
                 completion(.success(response.posts))
             }
         }
+    }
+
+    private func request<T: Decodable>(_ queryItems: [URLQueryItem],
+                                       _ auth: Authentication,
+                                       from endpoint: Endpoint,
+                                       session: URLSession,
+                                       completion: @escaping (Result<T, CorkboardError>) -> Void) {
+        var components = URLComponents()
+        components.scheme = "https"
+        components.host = "api.pinboard.in"
+        components.path = "/v1\(endpoint.rawValue)"
+        components.queryItems = queryItems
+        components.queryItems?.append(URLQueryItem(name: "format", value: "json"))
+
+        switch auth {
+        case .credentials(username: let username, password: let password):
+            components.user = username
+            components.password = password
+        case .token(let token):
+            components.queryItems?.append(URLQueryItem(name: "auth_token", value: token))
+        }
+
+        guard let url = components.url else {
+            completion(.failure(.urlEncoding(components)))
+            return
+        }
+
+        let task = session.dataTask(with: url) { data, response, error in
+            guard error == nil, let data = data else {
+                completion(.failure(.network(response)))
+                return
+            }
+
+            let decoder = JSONDecoder()
+            decoder.dateDecodingStrategy = .iso8601
+            decoder.keyDecodingStrategy = .convertFromSnakeCase
+
+
+            do {
+                let value = try decoder.decode(T.self, from: data)
+                completion(.success(value))
+            } catch {
+                completion(.failure(.json(error)))
+            }
+
+        }
+
+        task.resume()
     }
 }
