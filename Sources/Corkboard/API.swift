@@ -6,6 +6,16 @@ enum Endpoint: String {
     case postsDelete = "/posts/delete"
     case postsGet = "/posts/get"
     case postsRecent = "/posts/recent"
+    case postsDates = "/posts/dates"
+    case postsAll = "/posts/all"
+    case postsSuggest = "/posts/suggest"
+    case tagsGet = "/tags/get"
+    case tagsDelete = "/tags/delete"
+    case tagsRename = "/tags/rename"
+    case userSecret = "/user/secret"
+    case userApiToken = "/user/api_token/"
+    case notesList = "/notes/list"
+    case notesId = "/notes/ID"
 }
 
 extension PinboardClient {
