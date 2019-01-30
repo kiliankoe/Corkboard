@@ -3,10 +3,15 @@ import XCTest
 
 final class CorkboardTests: XCTestCase {
     func testExample() {
-        // This is an example of a functional test case.
-        // Use XCTAssert and related functions to verify your tests produce the correct
-        // results.
-        XCTAssertEqual(Corkboard().text, "Hello, World!")
+        let e = expectation(description: "foo")
+
+        let client = PinboardClient(auth: .token("<#token#>"))
+        client.postsRecent { result in
+            print(result)
+            e.fulfill()
+        }
+
+        waitForExpectations(timeout: 5)
     }
 
     static var allTests = [

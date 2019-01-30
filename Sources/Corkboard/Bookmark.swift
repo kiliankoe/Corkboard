@@ -1,5 +1,13 @@
 import Foundation
 
+enum YesNo: String, Decodable {
+    case yes, no
+
+    var bool: Bool {
+        return self ~= .yes
+    }
+}
+
 public struct Bookmark: Decodable {
     public let url: URL
     public let title: String
@@ -25,9 +33,23 @@ public struct Bookmark: Decodable {
         self.title = try container.decode(String.self, forKey: .title)
         self.description = try container.decode(String.self, forKey: .description)
         self.time = try container.decode(Date.self, forKey: .time)
-        self.isPublic = try container.decode(Bool.self, forKey: .isPublic)
-        self.isUnread = try container.decode(Bool.self, forKey: .isUnread)
+
+        let shared = try container.decode(YesNo.self, forKey: .isPublic)
+        self.isPublic = shared.bool
+        let toRead = try container.decode(YesNo.self, forKey: .isUnread)
+        self.isUnread = toRead.bool
         let tagString = try container.decode(String.self, forKey: .tags)
         self.tags = tagString.split(separator: " ").map(String.init)
+    }
+}
+
+struct BookmarksResponse: Decodable {
+    let date: Date
+    let user: String
+    let bookmarks: [Bookmark]
+
+    private enum CodingKeys: String, CodingKey {
+        case date, user
+        case bookmarks = "posts"
     }
 }
