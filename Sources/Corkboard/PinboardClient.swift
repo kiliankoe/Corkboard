@@ -17,8 +17,12 @@ public enum CorkboardError: Error {
     case pinboardError(PinboardError)
 }
 
-public struct PinboardClient {
+public class PinboardClient {
     var auth: Authentication
+
+    init(auth: Authentication) {
+        self.auth = auth
+    }
 
     /// Returns the most recent time a bookmark was added, updated or deleted.
     ///
