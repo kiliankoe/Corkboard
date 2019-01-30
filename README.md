@@ -4,7 +4,9 @@
 
 This is a simple client for the pinboard.in API. Use it to fetch and update your bookmarks from within your app or service.
 
-Please be sure to read the section on rate limits in the [pinboard.in API documentation](https://pinboard.in/api). This package currently supports checking for `429 Too Many Requests` errors and will retry a few times waiting a few seconds, but it does not currently handle the limits imposed for the posts/all and posts/recent endpoint.
+Corkboard respects the rate limits imposed by Pinboard and will wait if a request has been sent within the last three seconds. It will also retry up to 4 times if it receives a `429 Too Many Requests` status code.
+
+The `posts/recent` and `posts/all` endpoints have their own limits of three and five minutes respectively. These are not retried automatically, you will receive an error with the waiting time remaining.
 
 
 

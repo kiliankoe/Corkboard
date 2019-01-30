@@ -16,13 +16,12 @@ public enum CorkboardError: Error {
     case json(Error)
     case pinboardStatus(Int)
     case pinboardError(String)
-    /// Corkboard will automatically retry the request after the specified
-    /// time interval up to maximum of 4 tries. After that you'll see a
-    /// `CorkboardError.rateLimitCancelling` error.
-    case rateLimit(retryingIn: TimeInterval)
     /// After 4 tries and waiting for a total of 30 seconds Corkboard will stop
     /// attempting new requests. Please re-initiate manually.
     case rateLimitCancelling
+    /// Playing nice with the Pinboard API requires to wait a bit before trying
+    /// this request again.
+    case requestLimit(retryIn: TimeInterval)
 }
 
 public class PinboardClient {
@@ -31,6 +30,13 @@ public class PinboardClient {
     init(auth: Authentication) {
         self.auth = auth
     }
+
+    /// Set this to receive information on when Corkboard will retry requests.
+    public var retryingIn: ((TimeInterval) -> Void)?
+
+    var lastRequest: Date = .distantPast
+    var lastRecentsRequest: Date = .distantPast
+    var lastAllRequest: Date = .distantPast
 
     // The current amount of time waited before retrying a request. This is
     // reset after a successful request.
@@ -111,6 +117,38 @@ public class PinboardClient {
             return
         }
 
+        let now = Date()
+
+        switch components.path {
+        case "/v1/posts/all":
+            let timeDiff = now.timeIntervalSince(self.lastAllRequest)
+            let waitTime: Double = 5 * 60
+            guard timeDiff >= waitTime else {
+                completion(.failure(.requestLimit(retryIn: waitTime - timeDiff)))
+                return
+            }
+            self.lastAllRequest = now
+        case "/v1/posts/recent":
+            let timeDiff = now.timeIntervalSince(self.lastRecentsRequest)
+            let waitTime: Double = 3 * 60
+            guard timeDiff >= waitTime else {
+                completion(.failure(.requestLimit(retryIn: waitTime - timeDiff)))
+                return
+            }
+            self.lastRecentsRequest = now
+        default:
+            let timeDiff = now.timeIntervalSince(self.lastRequest)
+            guard timeDiff >= 3 else {
+                retry(taskTo: url,
+                      in: timeDiff,
+                      session: session,
+                      completion: completion)
+                self.retryingIn?(3 - timeDiff)
+                return
+            }
+            self.lastRequest = now
+        }
+
         request(url, session: session, completion: completion)
     }
 
@@ -145,7 +183,7 @@ public class PinboardClient {
                       in: self.retryWait,
                       session: session,
                       completion: completion)
-                completion(.failure(.rateLimit(retryingIn: self.retryWait)))
+                self.retryingIn?(self.retryWait)
                 return
             default:
                 completion(.failure(.pinboardStatus(response.statusCode)))
