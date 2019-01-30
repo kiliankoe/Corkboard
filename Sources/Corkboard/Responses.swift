@@ -1,6 +1,6 @@
 import struct Foundation.Date
 
-public struct PinboardError: Decodable {
+struct PinboardError: Decodable {
     let resultCode: String
 }
 

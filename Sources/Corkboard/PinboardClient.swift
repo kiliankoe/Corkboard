@@ -15,7 +15,7 @@ public enum CorkboardError: Error {
     case network(URLResponse?)
     case json(Error)
     case pinboardStatus(Int)
-    case pinboardError(PinboardError)
+    case pinboardError(String)
     /// Corkboard will automatically retry the request after the specified
     /// time interval up to maximum of 4 tries. After that you'll see a
     /// `CorkboardError.rateLimitCancelling` error.
@@ -157,7 +157,7 @@ public class PinboardClient {
             decoder.keyDecodingStrategy = .convertFromSnakeCase
 
             if let pinboardError = try? decoder.decode(PinboardError.self, from: data) {
-                completion(.failure(.pinboardError(pinboardError)))
+                completion(.failure(.pinboardError(pinboardError.resultCode)))
                 return
             }
 
