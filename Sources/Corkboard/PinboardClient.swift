@@ -16,6 +16,9 @@ public enum CorkboardError: Error {
     case json(Error)
     case pinboardStatus(Int)
     case pinboardError(PinboardError)
+    /// Corkboard will automatically retry the request after the specified
+    /// time interval up to maximum of 4 tries. After that you'll see a
+    /// `CorkboardError.rateLimitCancelling` error.
     case rateLimit(retryingIn: TimeInterval)
     /// After 4 tries and waiting for a total of 30 seconds Corkboard will stop
     /// attempting new requests. Please re-initiate manually.
@@ -130,7 +133,7 @@ public class PinboardClient {
                 self.retryWait = 1
             case 429:
                 // Pinboard docs kindly ask to increasingly back off on firing
-                // too many requests. After 4 attemps (2^4 -> 30 seconds) we're
+                // too many requests. After 4 attempts (2^4 -> 30 seconds) we're
                 // cancelling though.
                 guard self.retryWait < 16 else {
                     completion(.failure(.rateLimitCancelling))
