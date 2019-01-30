@@ -51,6 +51,7 @@ enum Network {
 
             let decoder = JSONDecoder()
             decoder.dateDecodingStrategy = .iso8601
+            decoder.keyDecodingStrategy = .convertFromSnakeCase
 
             do {
                 let value = try decoder.decode(T.self, from: data)
@@ -67,6 +68,23 @@ enum Network {
 
 public struct PinboardClient {
     var auth: Authentication
+
+    /// Returns the most recent time a bookmark was added, updated or deleted.
+    ///
+    /// Use this before calling posts/all to see if the data has changed since the last fetch.
+    public func postsUpdate(session: URLSession = .shared,
+                            completion: @escaping (Result<Date, CorkboardError>) -> Void) {
+        Network.request([], self.auth, from: .postsUpdate, session: session) {
+            (result: Result<PostsUpdateResponse, CorkboardError>) in
+
+            switch result {
+            case .failure(let error):
+                completion(.failure(error))
+            case .success(let response):
+                completion(.success(response.updateTime))
+            }
+        }
+    }
 
     /// Returns a list of the user's most recent posts, filtered by tag.
     ///
@@ -94,7 +112,7 @@ public struct PinboardClient {
             case .failure(let error):
                 completion(.failure(error))
             case .success(let response):
-                completion(.success(response.bookmarks))
+                completion(.success(response.posts))
             }
         }
     }

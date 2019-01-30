@@ -42,14 +42,3 @@ public struct Bookmark: Decodable {
         self.tags = tagString.split(separator: " ").map(String.init)
     }
 }
-
-struct BookmarksResponse: Decodable {
-    let date: Date
-    let user: String
-    let bookmarks: [Bookmark]
-
-    private enum CodingKeys: String, CodingKey {
-        case date, user
-        case bookmarks = "posts"
-    }
-}
