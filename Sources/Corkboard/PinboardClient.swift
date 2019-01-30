@@ -14,7 +14,12 @@ public enum CorkboardError: Error {
     case urlEncoding(URLComponents)
     case network(URLResponse?)
     case json(Error)
+    case pinboardStatus(Int)
     case pinboardError(PinboardError)
+    case rateLimit(retryingIn: TimeInterval)
+    /// After 4 tries and waiting for a total of 30 seconds Corkboard will stop
+    /// attempting new requests. Please re-initiate manually.
+    case rateLimitCancelling
 }
 
 public class PinboardClient {
@@ -23,6 +28,10 @@ public class PinboardClient {
     init(auth: Authentication) {
         self.auth = auth
     }
+
+    // The current amount of time waited before retrying a request. This is
+    // reset after a successful request.
+    var retryWait: TimeInterval = 1
 
     /// Returns the most recent time a bookmark was added, updated or deleted.
     ///
@@ -99,9 +108,44 @@ public class PinboardClient {
             return
         }
 
-        let task = session.dataTask(with: url) { data, response, error in
-            guard error == nil, let data = data else {
-                completion(.failure(.network(response)))
+        request(url, session: session, completion: completion)
+    }
+
+    private func request<T: Decodable>(_ url: URL,
+                                       session: URLSession,
+                                       completion: @escaping (Result<T, CorkboardError>) -> Void) {
+
+        let task = session.dataTask(with: url) { data, resp, error in
+            guard
+                error == nil,
+                let data = data,
+                let response = resp as? HTTPURLResponse
+            else {
+                completion(.failure(.network(resp)))
+                return
+            }
+
+            switch response.statusCode {
+            case 200...299:
+                self.retryWait = 1
+            case 429:
+                // Pinboard docs kindly ask to increasingly back off on firing
+                // too many requests. After 4 attemps (2^4 -> 30 seconds) we're
+                // cancelling though.
+                guard self.retryWait < 16 else {
+                    completion(.failure(.rateLimitCancelling))
+                    return
+                }
+
+                self.retryWait *= 2
+                self.retry(taskTo: url,
+                      in: self.retryWait,
+                      session: session,
+                      completion: completion)
+                completion(.failure(.rateLimit(retryingIn: self.retryWait)))
+                return
+            default:
+                completion(.failure(.pinboardStatus(response.statusCode)))
                 return
             }
 
@@ -124,5 +168,15 @@ public class PinboardClient {
         }
 
         task.resume()
+    }
+
+    private func retry<T: Decodable>(taskTo url: URL,
+                                     in seconds: TimeInterval,
+                                     session: URLSession,
+                                     completion: @escaping (Result<T, CorkboardError>) -> Void) {
+        let deadline = DispatchTime.now() + .seconds(Int(seconds))
+        DispatchQueue(label: "Corkboard.RetryRequest").asyncAfter(deadline: deadline) {
+            self.request(url, session: session, completion: completion)
+        }
     }
 }
