@@ -11,7 +11,10 @@ Please be sure to read the section on rate limits in the [pinboard.in API docume
 ### Quick Start
 
 ```swift
+import Corkboard
+
 let client = PinboardClient(auth: .token("<#your token#>"))
+
 client.postsRecent { result in
     guard let bookmarks = try? result.dematerialize() else { return }
     for bookmark in bookmarks {
