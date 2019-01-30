@@ -16,6 +16,7 @@ public enum CorkboardError: Error {
     case json(Error)
     case pinboardStatus(Int)
     case pinboardError(String)
+    case pinboardOk
     /// After 4 tries and waiting for a total of 30 seconds Corkboard will stop
     /// attempting new requests. Please re-initiate manually.
     case rateLimitCancelling
@@ -194,8 +195,15 @@ public class PinboardClient {
             decoder.dateDecodingStrategy = .iso8601
             decoder.keyDecodingStrategy = .convertFromSnakeCase
 
-            if let pinboardError = try? decoder.decode(PinboardError.self, from: data) {
-                completion(.failure(.pinboardError(pinboardError.resultCode)))
+            if let pinboardResult = try? decoder.decode(PinboardResult.self, from: data) {
+                if pinboardResult.resultCode == "done" {
+                    // This is not an error and should not be caught inside
+                    // Corkboard accordingly. Would be nice to not have this in
+                    // `CorkboardError`.
+                    completion(.failure(.pinboardOk))
+                } else {
+                    completion(.failure(.pinboardError(pinboardResult.resultCode)))
+                }
                 return
             }
 
