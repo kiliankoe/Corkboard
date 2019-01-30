@@ -47,13 +47,15 @@ public class PinboardClient {
     ///   - tags: filter by up to three tags
     ///   - count: number of results to return. Default is 15, max is 100
     public func postsRecent(tags: [String] = [],
-                            count: Int = 15,
+                            count: Int? = nil,
                             session: URLSession = .shared,
                             completion: @escaping (Result<[Bookmark], CorkboardError>) -> Void) {
 
-        var queryItems = [
-            URLQueryItem(name: "count", value: String(count))
-        ]
+        var queryItems: [URLQueryItem] = []
+
+        if let count = count {
+            queryItems.append(URLQueryItem(name: "count", value: String(count)))
+        }
 
         if !tags.isEmpty {
             queryItems.append(
