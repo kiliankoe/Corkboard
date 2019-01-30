@@ -27,7 +27,7 @@ public enum CorkboardError: Error {
 public class PinboardClient {
     var auth: Authentication
 
-    init(auth: Authentication) {
+    public init(auth: Authentication) {
         self.auth = auth
     }
 
