@@ -18,7 +18,7 @@ import Corkboard
 let client = PinboardClient(auth: .token("<#your token#>"))
 
 client.postsRecent { result in
-    guard let bookmarks = try? result.dematerialize() else { return }
+    guard let bookmarks = try? result.get() else { return }
     for bookmark in bookmarks {
         print(bookmark)                    
     }
@@ -36,4 +36,3 @@ Add the following to your package manifest.
 ```swift
 .package(url: "https://github.com/kiliankoe/Corkboard", from: "<#latest#>")
 ```
-
